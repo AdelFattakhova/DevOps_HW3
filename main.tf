@@ -225,7 +225,7 @@ output "db_instance_endpoint" {
   description = "Endpoint of DB instance"
 }
 
-output "api_url" {
+output "api_resource_url" {
   value = join("/", [aws_api_gateway_deployment.deployment.invoke_url, aws_api_gateway_resource.resource.path_part])
-  description = "URL of the API"
+  description = "URL of the resource from API"
 }
