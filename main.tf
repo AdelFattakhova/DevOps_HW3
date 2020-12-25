@@ -115,7 +115,7 @@ data "aws_subnet_ids" "default" {
 
 resource "aws_security_group" "instance" {
   name = "terraform-task3-instance"
-  
+
   ingress {
       from_port = var.server_port
       to_port = var.server_port
@@ -173,6 +173,42 @@ resource "aws_lb_target_group" "asg" {
   }
 }
 
+resource "aws_api_gateway_rest_api" "api" {
+  name = "api-gateway"
+  description = "Online sample REST API"
+}
+
+resource "aws_api_gateway_resource" "resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id = aws_api_gateway_rest_api.api.root_resource_id
+  path_part = "categories"
+}
+
+resource "aws_api_gateway_method" "method" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.resource.id
+  http_method = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "integration" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.resource.id
+  http_method = aws_api_gateway_method.method.http_method
+  integration_http_method = "GET"
+  type = "HTTP_PROXY"
+  uri = "https://gorest.co.in/public-api/categories"
+}
+
+resource "aws_api_gateway_deployment" "deployment" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  stage_name = "dev"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 variable "server_port" {
   description = "Port to run at"
   type = number
@@ -187,4 +223,9 @@ output "alb_dns_name" {
 output "db_instance_endpoint" {
   value = aws_db_instance.task3_database.endpoint
   description = "Endpoint of DB instance"
+}
+
+output "api_url" {
+  value = join("/", [aws_api_gateway_deployment.deployment.invoke_url, aws_api_gateway_resource.resource.path_part])
+  description = "URL of the API"
 }
